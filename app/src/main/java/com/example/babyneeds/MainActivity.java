@@ -1,6 +1,9 @@
 package com.example.babyneeds;
 
+import android.content.Intent;
 import android.os.Bundle;
+import android.os.Handler;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -13,31 +16,28 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 
+import com.example.babyneeds.data.DatabaseHandler;
+import com.example.babyneeds.model.Item;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
+
+import java.util.List;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
 
 public class MainActivity extends AppCompatActivity {
-    @BindView(R.id.title)
-    TextView title;
-    @BindView(R.id.babyItem)
-    EditText babyItem;
-    @BindView(R.id.itemQuantity)
-    EditText itemQuantity;
-    @BindView(R.id.itemColor)
-    EditText itemColor;
-    @BindView(R.id.itemSize)
-    EditText itemSize;
-    @BindView(R.id.saveButton)
-    Button saveButton;
-    @BindView(R.id.layout_id)
-    LinearLayout layoutId;
+    private Button saveButton;
+    private EditText babyItem;
+    private EditText itemQuantity;
+    private EditText itemColor;
+    private EditText itemSize;
+
+
     private AlertDialog.Builder Builder;
     private AlertDialog dialog;
-
+    DatabaseHandler databaseHandler;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -51,11 +51,20 @@ public class MainActivity extends AppCompatActivity {
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-               // Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                      //  .setAction("Action", null).show();
+                // Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
+                //  .setAction("Action", null).show();
                 createPopDialog();
             }
         });
+
+        databaseHandler = new DatabaseHandler(this);
+
+        //check if item was saved
+        List<Item> items = databaseHandler.getAllItems();
+        for (Item item : items) {
+            Log.d("Main", "onCreate: " + item.getDateIteamAdded());
+        }
+
     }
 
     @Override
@@ -70,9 +79,34 @@ public class MainActivity extends AppCompatActivity {
 
         Builder = new AlertDialog.Builder(this);
         View view = getLayoutInflater().inflate(R.layout.popup, null);
+
         Builder.setView(view);
-        dialog=Builder.create();
+        dialog = Builder.create();
         dialog.show();
+
+        babyItem = view.findViewById(R.id.babyItem);
+        itemQuantity = view.findViewById(R.id.itemQuantity);
+        itemColor = view.findViewById(R.id.itemColor);
+        itemSize = view.findViewById(R.id.itemSize);
+        saveButton = view.findViewById(R.id.saveButton);
+        saveButton.setOnClickListener(new View.OnClickListener() {
+
+
+            @Override
+            public void onClick(View v) {
+
+                if (!babyItem.getText().toString().isEmpty()
+                        && !itemColor.getText().toString().isEmpty()
+                        && !itemQuantity.getText().toString().isEmpty()
+                        && !itemSize.getText().toString().isEmpty()) {
+                    saveItem(v);
+                }else {
+                    Snackbar.make(v, "Empty Fields not Allowed", Snackbar.LENGTH_SHORT)
+                            .show();
+                }
+
+            }
+        });
 
     }
 
@@ -92,7 +126,40 @@ public class MainActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
-    @OnClick(R.id.saveButton)
-    public void onClick() {
+
+    public void saveItem(View view) {
+
+        Item item = new Item();
+
+        String newItem = babyItem.getText().toString().trim();
+        String newColor = itemColor.getText().toString().trim();
+        int quantity = Integer.parseInt(itemQuantity.getText().toString().trim());
+        int size = Integer.parseInt(itemSize.getText().toString().trim());
+
+        item.setIteamName(newItem);
+        item.setIteamColor(newColor);
+        item.setIteamquantity(quantity);
+        item.setIteamSize(size);
+
+        databaseHandler.addItem(item);
+
+        Snackbar.make(view, "Item Saved",Snackbar.LENGTH_SHORT)
+                .show();
+        new Handler().postDelayed(new Runnable() {
+                                      @Override
+                                      public void run() {
+
+                                      }
+                                  },1200);
+
+           dialog.dismiss();
+           startActivity(new Intent(MainActivity.this,ListActivity.class));
+
     }
+
+
+
+
+
+
 }
